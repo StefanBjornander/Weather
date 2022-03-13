@@ -1,0 +1,321 @@
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs/Observable';
+import { HttpClient } from '@angular/common/http';
+import { Component, OnInit } from '@angular/core';
+import { Customer } from './model/customer';
+import { Account } from './model/account';
+import { History } from './model/history';
+import { BankService } from './services/bank.service';
+import { map } from 'rxjs/operators';
+import { HttpHeaders } from '@angular/common/http';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+@Injectable()
+export class AppComponent implements OnInit {
+  constructor(private bankService: BankService, private http: HttpClient) {}
+
+  title = 'Bank';
+  public state = '';
+  public message = '';
+
+//---------------------------------------------
+
+  public oldCustomerName;
+  public newCustomerName;
+  public customer_number;
+  public customer;
+  public account;
+  public history;
+  public amount;
+
+  addCustomer() {
+    alert("Hello");
+    this.newCustomerName = '';
+    this.state = 'AddCustomer';
+  }
+
+  customerAdded() {
+    var self = this;
+
+    this.http.post('http://localhost:3000/api/add_customer/' + this.newCustomerName, "").subscribe((resultList) => {
+      self.message = this.newCustomerName + " with customer number " + resultList['customer_number'] + " has been added.";
+      self.state = '';
+      self.loadCustomerArray();
+    });
+  }
+
+//---------------------------------------------
+
+  editCustomer(customer) {
+    this.customer_number = customer.customer_number;
+    this.oldCustomerName = customer.customer_name;
+    this.newCustomerName = customer.customer_name;
+    this.state = 'EditCustomer';
+  }
+
+  customerEdited() {
+    var self = this;
+    this.http.post('http://localhost:3000/api/edit_customer/' + this.customer_number + "/" +
+                   this.newCustomerName, "").subscribe((resultList) => {
+      self.message = this.oldCustomerName + ", with customer number " + this.customer_number
+                     + ", has been changed to " + this.newCustomerName + ".";
+      self.state = '';
+      self.loadCustomerArray();
+    });
+  }
+
+//---------------------------------------------
+
+  deleteCustomer(customer) {
+    this.message = '';
+    var warning = "Are you sure you want to delete customer " + customer.customer_name +
+                  " with customer number " + customer.customer_number + "?";
+
+    if (confirm(warning)) {
+      this.http.post('http://localhost:3000/api/delete_customer/' + customer.customer_number, "").subscribe((resultList) => {
+        var count = resultList['count'];
+
+        if (count == 0) {
+          this.message = customer.customer_name + ", with customer number " +
+                         customer.customer_number + ", has been deleted.";
+        }
+        else {
+          this.message = customer.customer_name + ", with customer number " +
+                         customer.customer_number + ", could not be deleted since they have accounts."
+        }
+
+        this.state = '';
+        this.loadCustomerArray();
+      });
+    }
+  }
+
+//---------------------------------------------
+
+  addAccount(customer) {
+    var self = this;
+    this.http.post('http://localhost:3000/api/add_account/' + customer.customer_number, "").subscribe((resultList) => {
+      self.message = "An account with number " + resultList['number'] + " has been added to customer " +
+                     customer.customer_name + " with customer number " + customer.customer_number + ".";
+      self.state = '';
+      self.loadCustomerArray();
+    });
+  }
+
+//---------------------------------------------
+
+  deposit(customer, account) {
+    this.customer = customer;
+    this.account = account;
+    this.amount = null;
+    this.state = "Deposit";
+  }
+
+  depositDone() {
+    var self = this;
+    this.http.post('http://localhost:3000/api/deposit/' + this.account.account_number +
+                   '/' + this.amount, "").subscribe((resultList) => {
+      self.message = "Account number " + this.account.account_number +
+                      ", belonging to " + this.customer.customer_name + " with customer number " +
+                      this.customer.customer_number + ", has been deposit with " + this.amount + " kr.";
+      self.state = '';
+      self.loadCustomerArray();
+    });
+  }
+
+//---------------------------------------------
+
+  withdraw(customer, account) {
+    this.customer = customer;
+    this.account = account;
+    this.amount = 0;
+    this.state = "Withdraw";
+  }
+
+  withdrawDone() {
+    var self = this;
+    this.http.post('http://localhost:3000/api/withdraw/' + this.account.account_number +
+                   '/' + this.amount, "").subscribe((resultList) => {
+      self.message = "Account number " + this.account.account_number +
+                      ", belonging to " + this.customer.customer_name + " with customer number " +
+                      this.customer.customer_number + ", has been withdrawn with " + this.amount + " kr.";
+      self.state = '';
+      self.loadCustomerArray();
+    });
+  }
+
+  deleteAccount(customer, account) {
+    var self = this;
+    var warning = "Are you sure you want to delete account number " + account.account_number +
+                  ", belonging to " + customer.customer_name + " with customer number " +
+                  customer.customer_number + "?";
+
+    if (confirm(warning)) {
+      this.http.post('http://localhost:3000/api/delete_account/' + account.account_number, "").subscribe((resultList) => {
+        var balance = resultList['balance'];
+
+        if (balance == 0) {
+          self.message = "Account number " + account.account_number +
+                         ", belonging to " + customer.customer_name + " with customer number " +
+                         customer.customer_number + ", has been deleted.";
+        }
+        else {
+          self.message = "Account number " + account.account_number +
+                         ", belonging to " + customer.customer_name + " with customer number " +
+                         customer.customer_number + ", could not be deleted since its balance is non-zero.";
+        }
+
+        self.state = '';
+        self.loadCustomerArray();
+      });
+    }
+  }
+
+  ngOnInit(): void {
+    this.loadCustomerArray();
+  }
+
+  public count;
+  public customerArray;
+  public resultList;
+  public place;
+  public firstMinTemp;
+  public firstMaxTemp;
+  public firstAverageWind;
+  public firstLongWeekday;
+  public firstTime;
+  public firstURL;
+  public accountArrayMap;
+
+  loadCustomerArray() {
+    this.place = "Gothenburg";
+    this.firstLongWeekday = "Saturday";
+    this.firstTime = "21:00";
+
+    var self = this;
+    this.count = 1;
+    this.customerArray = []
+    this.accountArrayMap = [];
+
+    const shortWeekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const longWeekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thusday", "Friday", "Saturday"];
+
+    self.http.get('https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=57.7&lon=12.0').subscribe(value => {
+      let timeseries = value["properties"]["timeseries"];
+
+      let startTime = new Date(timeseries[0]["time"]);
+      let startDay = Math.trunc(startTime.getTime() / (1000*60*60*24));
+
+      let resultList = [];
+      for (let index = 0; index < 7; ++ index) {
+        resultList[index] = {"minTemp": -1, "maxTemp": -1, "windSum": 0, "windCount": 0, "averageWind": 0, "shortWeekday": "",  "longWeekday": "", "hour":0, "minute":0, "url": ""};
+      }
+
+      timeseries.forEach(
+        function (timeserie) {
+          let currentTime = new Date(timeserie["time"]);
+          let currentDay = Math.trunc(currentTime.getTime() / (1000*60*60*24));
+
+          let details = timeserie["data"]["instant"]["details"];
+          let temp = Math.round(details["air_temperature"]),
+              wind = details["wind_speed"];
+
+          let index = currentDay - startDay,
+              currentHours = currentTime.getHours();
+          if (currentHours == 0) {
+            ++index;
+          }
+
+          if (index < 7) {
+            let minTemp = resultList[index]["minTemp"];
+            if ((minTemp == -1) || (temp < minTemp)) {
+              resultList[index]["minTemp"] = temp;
+            }
+
+            let maxTemp = resultList[index]["maxTemp"];
+            if ((maxTemp == -1) || (temp > maxTemp)) {
+              resultList[index]["maxTemp"] = temp;
+            }
+
+            resultList[index]["hour"] = currentTime.getHours();
+            resultList[index]["minute"] = currentTime.getMinutes();
+            resultList[index]["windSum"] += wind;
+            ++resultList[index]["windCount"];
+            let weekday = currentTime.getDay();
+            resultList[index]["shortWeekday"] = shortWeekdays[weekday];
+            resultList[index]["longWeekday"] = longWeekdays[weekday];
+            resultList[index]["url"] = "https://github.com/nrkno/yr-weather-symbols/blob/master/dist/svg/04.svg";
+          }
+        }
+      );
+
+      for (let index = 0; index < 7; ++ index) {
+        resultList[index]["averageWind"] = Math.trunc(resultList[index]["windSum"] / resultList[index]["windCount"]);
+      }
+
+      this.firstMinTemp = resultList[0]["minTemp"];
+      this.firstMaxTemp = resultList[0]["maxTemp"];
+      this.firstAverageWind = resultList[0]["averageWind"];
+      let hour = resultList[0]["hour"],
+          minute = resultList[0]["minute"];
+      this.firstTime = ((hour < 10) ? "0" : "") + hour + ":" +
+                       ((minute < 10) ? "0" : "") + minute;
+      this.firstLongWeekday = resultList[0]["longWeekday"];
+      this.firstURL = resultList[0]["url"];
+      //console.log(this.firstURL);
+      this.resultList = resultList;
+    });
+  }
+
+  loadCustomerArrayX() {
+    var self = this;
+    this.count = 1;
+    this.customerArray = []
+    this.accountArrayMap = [];
+
+    self.http.get('http://localhost:3000/api/customers').subscribe(value => {
+      self.customerArray = value;
+      self.count = self.customerArray.length;
+      console.log(self.customerArray);
+      console.log("X");
+      console.log(self.count);
+
+      self.customerArray.forEach(function (customer) {
+        var customer_number = customer['customer_number'];
+
+        self.http.get<any[]>('http://localhost:3000/api/accounts/' + customer_number).subscribe(accountList => {
+          //self.accountArrayMap[customer_number] = accountList;
+
+          var accountBalanceList = [];
+          self.accountArrayMap[customer_number] = accountBalanceList;
+
+          accountList.forEach(function (accountRecord) {
+            var account_number = accountRecord['account_number'];
+            self.http.get('http://localhost:3000/api/balance/' + account_number).subscribe(balanceRecord => {
+              var balance = balanceRecord['balance'];
+              accountBalanceList.push({account_number: account_number, account_balance: balance});
+            });
+          });
+
+          --self.count;
+        });
+      });
+    });
+  }
+
+  viewHistory(customer, account) {
+    var self = this;
+    this.customer = customer;
+    this.account = account;
+
+    self.http.get('http://localhost:3000/api/history/' + account.account_number).
+    subscribe(resultList => {
+      self.history = resultList;
+      self.state = "ViewHistory";
+    });
+  }
+}

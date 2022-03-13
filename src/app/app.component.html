@@ -1,0 +1,46 @@
+ <div align="center">
+  <h2>{{place}}</h2>
+  {{firstMinTemp}} - {{firstMaxTemp}} &deg;C<br>
+  {{firstAverageWind}} m/s<br>
+  <td align="center"><img src="{{firstFile}}"
+      alt="{{firstSummary}}"></td><br>
+  {{firstLongWeekday}} {{firstTime}}
+
+  <hr>
+  <p>
+
+  <table>      
+    <tr>
+      <ng-container *ngFor="let result of resultList">
+        <td>
+          <table>
+            <tr>
+              <td align="center">{{result.shortWeekday}}</td>
+            </tr>
+            <tr>
+            </tr>
+            <tr>
+              <td align="center"><img src="{{result.file}}"
+                  alt="{{result.summary}}"></td>
+            </tr>
+            <tr>
+            </tr>
+            <tr>
+              <td align="center">{{result.file}}</td>
+            </tr>
+            <tr>
+            </tr>
+            <tr>
+              <td align="center">{{result.minTemp}} –
+                                 {{result.maxTemp}} &deg;C</td>
+            <tr>
+            </tr>
+            <tr>
+              <td align="center">{{result.averageWind}} m/s</td>
+            </tr>
+          </table>
+        <td>
+      </ng-container>
+    <tr>
+  </table>
+</div>

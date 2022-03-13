@@ -1,0 +1,9 @@
+<tr align="left" *ngFor="let account of customer.accountArray">
+  <td></td>
+  <td>{{account.accountNumber | currency:"EUR"}}</td>
+  <td>1.23{{account.balance}}</td>
+  <td class="column2"><button class="button" (click)="deposit(customer,account)">Deposit</button></td>
+  <td class="column2"><button class="button" (click)="withdraw(customer,account)">Withdraw</button></td>
+  <td class="column2"><button class="button" (click)="viewHistory(customer,account)">View</button></td>
+  <td class="column2"><button class="button" (click)="deleteAccount(customer,account)">Delete</button></td>
+</tr>

@@ -1,0 +1,8 @@
+<h2>Add Customer</h2>
+
+<form (ngSubmit)="onSubmit(addForm)" #addForm="ngForm">
+  <input type="text" minlength="3" placeholder="Customer Name"
+         name="customerName" [(ngModel)]="customerName">
+  <button type="submit">Add</button>
+</form>
+
